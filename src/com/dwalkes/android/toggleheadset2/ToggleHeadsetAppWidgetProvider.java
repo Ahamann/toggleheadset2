@@ -53,11 +53,12 @@ import android.widget.RemoteViews;
  */
 public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
 
-	private static String TAG = ToggleHeadsetAppWidgetProvider.class.getName();
+	private static String TAG = "ToggleHeadset";
 	
 	/**
 	 * Called when appwidget is loaded
 	 */
+	@Override
 	public void onUpdate( Context context, 
 			AppWidgetManager appWidgetManager, 
 			int[] appWidgetIds) {
@@ -68,6 +69,7 @@ public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
 
 	}
 
+	@Override
 	public void onReceive(Context context, Intent intent) 
 	{
 		Log.d(TAG,"Receive intent " + intent);
@@ -82,7 +84,6 @@ public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
 	 */
 	public static class ToggleHeadsetService extends Service implements OnSharedPreferenceChangeListener {
 
-		private String TAG = "ToggleHeadsetService";
 		public static final String INTENT_UPDATE_ICON = "com.dwalkes.android.toggleheadset2.INTENT_UPDATE_ICON";
 		public static final String INTENT_USER_TOGGLE_REQUEST = "com.dwalkes.android.toggleheadset2.INTENT_TOGGLE_HEADSET";
 		public static final String PREF_FILE = "toggleheadset2_prefs";
@@ -98,6 +99,7 @@ public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
         private static final int DEVICE_STATE_UNAVAILABLE   = 0;
         private static final int DEVICE_STATE_AVAILABLE     = 1;
         
+		@Override
 		public IBinder onBind(Intent arg0) {
 			// TODO Auto-generated method stub
 			return null;
@@ -144,6 +146,7 @@ public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
 		}
 
 		
+		@Override
 		public void onCreate() {
 			super.onCreate();
 			SharedPreferences mPrefs = getSharedPreferences(PREF_FILE, 0);
@@ -247,6 +250,7 @@ public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
 		 * Called when the service is destroyed (low memory conditions).  We may miss
 		 * notification of headset plug
 		 */
+		@Override
 		public void onDestroy() {
 			Log.i(TAG,"onDestroy");
 			/*
@@ -316,7 +320,7 @@ public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
 				int routing = manager.getRouting(AudioManager.MODE_NORMAL);
 		    	Log.d(TAG,"getRouting returns " + routing); 
 		    	isRoutingHeadset = (routing & AudioManager.ROUTE_HEADSET) != 0;
-			} else {
+			} else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
 				/*
 				 * Code for Android 2.1, 2.2, 2.3, maybe others... Thanks Adam King!
 				 */
@@ -330,12 +334,15 @@ public class ToggleHeadsetAppWidgetProvider extends AppWidgetProvider {
 
 	                int retVal = (Integer)getDeviceConnectionState.invoke(audioSystem, DEVICE_IN_WIRED_HEADSET, "");
 	                
-	                isRoutingHeadset = (retVal == 1);
+	                isRoutingHeadset = (retVal != 0);
 			    	Log.d(TAG,"getDeviceConnectionState " + retVal); 
 
 	            } catch (Exception e) {
 	                Log.e(TAG, "Could not determine status in isRoutingHeadset(): " + e);
 	            }
+			} else {
+				AudioManager am = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+				isRoutingHeadset = am.isWiredHeadsetOn();
 			}
 	    	return isRoutingHeadset; 
 		}
